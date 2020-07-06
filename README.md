@@ -152,7 +152,46 @@ Instead of hosting our own server and run the HTML file, we can use `emrun` to s
 
 >More info: https://emscripten.org/docs/compiling/Running-html-files-with-emrun.html
 
+Also, there is no harm adding these instructions to your build command which can help debug the issue.
+```
+ASSERTIONS=1 -s SAFE_HEAP=1 -s DETERMINISTIC=1
+```
+
+>More info: https://emscripten.org/docs/porting/Debugging.html
 
 ## **Next Step**
+Depending on where you want to run your WASM application built with Emscripten, you should choose the build command carefully. Here are two common use cases:
 
-To Be Updated
+### 1. browser environment:
+
+Add the following instructions to your build command
+```
+-s EXPORT_ES6=1 -s MODULARIZE=1 -s USE_ES6_IMPORT_META=0 
+```
+
+>https://medium.com/@c.gerard.gallant/the-import-statement-with-an-emscripten-generated-webassembly-module-in-vue-js-a75e962b3413
+
+
+### 2. node environment:
+
+Add the following instruction to your build command
+```
+-s MODULARIZE=1
+```
+initialize your Module:
+```
+let myModule = null;
+Module = require('./KeyGen.js');
+Module().then(mod => {
+      myModule = mod;
+      console.log("module initialized")
+    })
+  }
+```
+## **Some Thoughts(?)**
+After integrating this WASM application into our project with Emscripten-generated JS file as the glue code, I am still not confident that this would be the optimal solution. For me, the lack of support for raw pointers in Emscripten is a huge blow, and it significantly slowed down the development. Plus, since the original C++ library is not using smart pointers, memory management is delicate and error-prone. Until now, I am not 100% sure whether the memory block the pointer is pointing is "freed" or not due to some weird behaviors of WASM shown while trying to "free" the memory block. However, at the end of the day, JS's GC will reset everything allocated for the Module, and that prevents memory leaks into the main JS memory. As for those memory block in the Module, well, in the worst case scenario, the peak memory usage will be the permanent memory usage, and you have 4GB of memory to play with... :))
+
+## **Further Reading**
+"WebAssembly in Action" -Gerard Gallant
+
+Emscripten Community: https://groups.google.com/g/emscripten-discuss
